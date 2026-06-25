@@ -1,27 +1,18 @@
-'use client'
-
-import { useState } from 'react'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { supabaseAdmin } from '@/lib/supabase'
 import { PLANS } from '@/lib/plans'
+import BillingClient from './BillingClient'
 
-export default function BillingPage() {
-  const [loading, setLoading] = useState<string | null>(null)
+export default async function BillingPage() {
+  const { userId } = await auth()
+  if (!userId) redirect('/sign-in')
 
-  async function handleUpgrade(plan: string) {
-    setLoading(plan)
-    try {
-      const res = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-      const data = await res.json()
-      if (data.url) window.location.href = data.url
-    } catch {
-      alert('エラーが発生しました')
-    } finally {
-      setLoading(null)
-    }
-  }
+  const { data: clinic } = await supabaseAdmin
+    .from('clinics')
+    .select('plan')
+    .eq('clerk_user_id', userId)
+    .single()
 
   return (
     <div className="p-8">
@@ -30,31 +21,17 @@ export default function BillingPage() {
         <p className="text-gray-500 mt-1">すべてのプランで14日間無料トライアル</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 max-w-4xl">
-        {Object.entries(PLANS).map(([key, plan]) => (
-          <div key={key} className="bg-white rounded-xl border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 text-lg mb-1">{plan.name}</h3>
-            <div className="mb-4">
-              <span className="text-3xl font-bold text-gray-900">¥{plan.price.toLocaleString()}</span>
-              <span className="text-gray-500 text-sm">/月</span>
-            </div>
-            <ul className="space-y-2 text-sm text-gray-600 mb-6">
-              <li>✓ フォーム: {plan.maxForms === Infinity ? '無制限' : `${plan.maxForms}個`}</li>
-              <li>✓ 月間回答: {plan.maxResponsesPerMonth === Infinity ? '無制限' : `${plan.maxResponsesPerMonth}件`}</li>
-              <li>✓ CSVエクスポート</li>
-              <li>✓ メール通知</li>
-              <li>✓ QRコード生成</li>
-            </ul>
-            <button
-              onClick={() => handleUpgrade(key)}
-              disabled={loading !== null}
-              className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading === key ? '処理中...' : '14日間無料で試す'}
-            </button>
-          </div>
-        ))}
+      {/* 現在のプラン */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8 max-w-4xl">
+        <p className="text-sm text-blue-700">
+          現在のプラン：
+          <span className="font-bold ml-1">
+            {PLANS[clinic?.plan as keyof typeof PLANS]?.name ?? 'ライト'}
+          </span>
+        </p>
       </div>
+
+      <BillingClient currentPlan={clinic?.plan ?? 'lite'} />
     </div>
   )
 }
