@@ -15,6 +15,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!clinic) redirect('/onboarding')
 
+  if (!clinic.stripe_subscription_id) redirect('/onboarding/plan')
+
   const plan = clinic.plan ?? 'lite'
 
   return (
