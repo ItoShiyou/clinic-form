@@ -13,6 +13,8 @@ export default async function DashboardPage() {
     .eq('clerk_user_id', userId)
     .single()
 
+  if (!clinic) redirect('/onboarding')
+
   const { data: forms } = await supabaseAdmin
     .from('forms')
     .select('id')
