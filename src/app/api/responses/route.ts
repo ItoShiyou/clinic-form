@@ -46,20 +46,24 @@ export async function POST(req: Request) {
   try {
     const { data: clinicFull } = await supabaseAdmin
       .from('clinics')
-      .select('name')
+      .select('name, clerk_user_id')
       .eq('id', clinic.id)
       .single()
 
-    const { data: user } = await supabaseAdmin.auth.admin.getUserById(clinic.id)
-    const email = user?.user?.email
+    if (clinicFull?.clerk_user_id) {
+      const { clerkClient } = await import('@clerk/nextjs/server')
+      const client = await clerkClient()
+      const user = await client.users.getUser(clinicFull.clerk_user_id)
+      const email = user.emailAddresses[0]?.emailAddress
 
-    if (email) {
-      await resend.emails.send({
-        from: 'クリニックフォーム <noreply@clinicform.jp>',
-        to: email,
-        subject: `【新しい回答】${form.title}`,
-        html: `<p>${clinicFull?.name ?? 'クリニック'}様、「${form.title}」に新しい回答が届きました。</p><p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/responses">ダッシュボードで確認する</a></p>`,
-      })
+      if (email) {
+        await resend.emails.send({
+          from: 'クリニックフォーム <onboarding@resend.dev>',
+          to: email,
+          subject: `【新しい回答】${form.title}`,
+          html: `<p>${clinicFull.name}様、「${form.title}」に新しい回答が届きました。</p><p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/responses">ダッシュボードで確認する</a></p>`,
+        })
+      }
     }
   } catch {
     // メール通知は失敗しても回答保存は成功とする
