@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, PLANS } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase'
+import type { PlanKey } from '@/lib/stripe'
 
 export async function POST(req: Request) {
   try {
@@ -9,22 +10,24 @@ export async function POST(req: Request) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { sessionId } = await req.json() as { sessionId: string }
-    if (!sessionId) return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 })
+    if (!sessionId || typeof sessionId !== 'string') {
+      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 })
+    }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId)
 
-    // 支払い完了・トライアル開始済みのセッションのみ処理
     if (session.status !== 'complete') {
       return NextResponse.json({ error: 'Session not complete' }, { status: 400 })
     }
 
-    const plan = session.metadata?.plan
+    const plan = session.metadata?.plan as PlanKey | undefined
     const clinicId = session.metadata?.clinic_id
-    if (!plan || !clinicId) {
-      return NextResponse.json({ error: 'Missing metadata' }, { status: 400 })
+
+    // metadata の plan が既知のプランか検証してから DB に書き込む
+    if (!plan || !(plan in PLANS) || !clinicId) {
+      return NextResponse.json({ error: 'Invalid session metadata' }, { status: 400 })
     }
 
-    // セッションが本人のものか確認
     const { data: clinic } = await supabaseAdmin
       .from('clinics')
       .select('id')
@@ -44,8 +47,8 @@ export async function POST(req: Request) {
       .eq('id', clinicId)
 
     return NextResponse.json({ plan })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch {
+    // 内部エラーの詳細はクライアントに返さない
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

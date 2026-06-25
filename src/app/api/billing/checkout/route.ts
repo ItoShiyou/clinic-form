@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { plan } = await req.json() as { plan: PlanKey }
+    const { plan, isOnboarding } = await req.json() as { plan: PlanKey; isOnboarding?: boolean }
     const planConfig = PLANS[plan]
     if (!planConfig) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
@@ -23,15 +23,15 @@ export async function POST(req: Request) {
 
     if (!clinic) return NextResponse.json({ error: 'Clinic not found' }, { status: 404 })
 
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
 
-    // 既存サブスクリプションがある場合はアップグレード処理
+    // 既存サブスクリプションがある場合: プラン変更（トライアルなし）
     if (clinic.stripe_subscription_id) {
       const currentPlanIndex = PLAN_ORDER.indexOf(clinic.plan as PlanKey)
       const newPlanIndex = PLAN_ORDER.indexOf(plan)
 
       if (newPlanIndex <= currentPlanIndex) {
-        return NextResponse.json({ error: 'Downgrade is not supported via this endpoint' }, { status: 400 })
+        return NextResponse.json({ error: 'Use the Stripe portal to downgrade or cancel' }, { status: 400 })
       }
 
       const subscription = await stripe.subscriptions.retrieve(clinic.stripe_subscription_id)
@@ -42,16 +42,15 @@ export async function POST(req: Request) {
         proration_behavior: 'create_prorations',
       })
 
-      // Webhook到着前にDBを即時更新
       await supabaseAdmin
         .from('clinics')
         .update({ plan })
         .eq('id', clinic.id)
 
-      return NextResponse.json({ url: successUrl })
+      return NextResponse.json({ url: `${appUrl}/dashboard?upgraded=1` })
     }
 
-    // 新規サブスクリプション: Stripe Checkout セッションを作成
+    // Stripeカスタマー作成（初回のみ）
     let customerId = clinic.stripe_customer_id
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -64,17 +63,18 @@ export async function POST(req: Request) {
         .eq('id', clinic.id)
     }
 
-    // 過去にこのプランのトライアルを使ったことがあるか確認
+    // アカウントとして一度でもトライアルを使ったか確認
     const pastSubs = await stripe.subscriptions.list({
       customer: customerId,
       status: 'all',
-      limit: 100,
+      limit: 10,
     })
-    const hasTrialedThisPlan = pastSubs.data.some(
-      (sub) =>
-        sub.trial_start != null &&
-        sub.items.data.some((item) => item.price.id === planConfig.priceId)
-    )
+    const hasEverTrialed = pastSubs.data.some((sub) => sub.trial_start != null)
+
+    // オンボーディング時は /onboarding/complete へ、それ以外は /dashboard へ
+    const successUrl = isOnboarding
+      ? `${appUrl}/onboarding/complete?session_id={CHECKOUT_SESSION_ID}`
+      : `${appUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -82,14 +82,15 @@ export async function POST(req: Request) {
       payment_method_types: ['card'],
       line_items: [{ price: planConfig.priceId, quantity: 1 }],
       success_url: successUrl,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
-      ...(hasTrialedThisPlan ? {} : { subscription_data: { trial_period_days: 14 } }),
+      cancel_url: isOnboarding
+        ? `${appUrl}/onboarding/plan`
+        : `${appUrl}/dashboard/billing`,
+      ...(!hasEverTrialed ? { subscription_data: { trial_period_days: 14 } } : {}),
       metadata: { plan, clinic_id: clinic.id },
     })
 
     return NextResponse.json({ url: session.url })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -9,11 +9,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: clinic } = await supabaseAdmin
     .from('clinics')
-    .select('plan')
+    .select('plan, stripe_subscription_id')
     .eq('clerk_user_id', userId)
     .single()
 
-  const plan = clinic?.plan ?? 'lite'
+  // クリニック未登録 → オンボーディングへ
+  if (!clinic) redirect('/onboarding')
+
+  // プラン未選択（Stripe未接続）→ プラン選択へ
+  if (!clinic.stripe_subscription_id) redirect('/onboarding/plan')
+
+  const plan = clinic.plan ?? 'lite'
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
