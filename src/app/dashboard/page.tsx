@@ -1,7 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { supabaseAdmin } from '@/lib/supabase'
+import UpgradeBanner from './UpgradeBanner'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -36,6 +38,10 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">ダッシュボード</h1>
         <p className="text-gray-500 mt-1">フォームの作成・管理・回答の確認ができます</p>
       </div>
+
+      <Suspense fallback={null}>
+        <UpgradeBanner />
+      </Suspense>
 
       {/* 統計カード */}
       <div className="grid grid-cols-3 gap-6 mb-8">
