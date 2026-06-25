@@ -8,11 +8,11 @@ export default function LegalPage() {
           <table className="w-full text-sm">
             <tbody>
               {[
-                { label: '販売事業者名', value: '【あなたの氏名または法人名を入力】' },
-                { label: '代表者名', value: '【代表者名を入力】' },
-                { label: '所在地', value: '【住所を入力】' },
-                { label: '電話番号', value: '【電話番号を入力】（お問い合わせはメールにてお願いいたします）' },
-                { label: 'メールアドレス', value: '【メールアドレスを入力】' },
+                {
+                  label: '販売事業者名・所在地・電話番号',
+                  value: 'ご請求をいただいた場合、遅滞なく書面または電子メールにて開示いたします。お問い合わせは下記メールアドレスまでお願いいたします。',
+                },
+                { label: 'メールアドレス', value: 'itwoshiyou@gmail.com' },
                 { label: 'サービス名', value: 'クリニックフォーム' },
                 {
                   label: '販売価格',
@@ -25,7 +25,7 @@ export default function LegalPage() {
                 { label: '動作環境', value: 'Google Chrome、Safari、Microsoft Edge（最新版推奨）' },
               ].map((row) => (
                 <tr key={row.label} className="border-b border-gray-100 last:border-0">
-                  <th className="text-left px-6 py-4 font-medium text-gray-700 bg-gray-50 w-40 align-top whitespace-nowrap">
+                  <th className="text-left px-6 py-4 font-medium text-gray-700 bg-gray-50 w-48 align-top">
                     {row.label}
                   </th>
                   <td className="px-6 py-4 text-gray-700 whitespace-pre-line">
@@ -36,10 +36,6 @@ export default function LegalPage() {
             </tbody>
           </table>
         </div>
-
-        <p className="text-xs text-gray-400 mt-6 text-center">
-          ※【】内の項目はサービス提供者が入力する必要があります。
-        </p>
       </div>
     </div>
   )
