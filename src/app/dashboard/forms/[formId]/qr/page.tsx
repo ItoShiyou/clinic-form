@@ -33,9 +33,13 @@ export default async function QRPage({ params }: { params: Promise<{ formId: str
         <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
           <p className="text-xs text-gray-500 mb-1">フォームURL</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm bg-gray-50 px-3 py-2 rounded-lg text-gray-700 break-all">
+            <a
+              href={formUrl}
+              target="_blank"
+              className="flex-1 text-sm bg-gray-50 px-3 py-2 rounded-lg text-blue-600 break-all hover:underline"
+            >
               {formUrl}
-            </code>
+            </a>
           </div>
         </div>
 
