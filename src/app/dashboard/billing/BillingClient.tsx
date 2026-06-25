@@ -3,7 +3,15 @@
 import { useState } from 'react'
 import { PLANS } from '@/lib/plans'
 
-export default function BillingClient({ currentPlan }: { currentPlan: string }) {
+const PLAN_ORDER: string[] = ['lite', 'standard', 'clinic']
+
+export default function BillingClient({
+  currentPlan,
+  hasPurchasedPlan,
+}: {
+  currentPlan: string
+  hasPurchasedPlan: boolean
+}) {
   const [loading, setLoading] = useState<string | null>(null)
 
   async function handleUpgrade(plan: string) {
@@ -27,6 +35,10 @@ export default function BillingClient({ currentPlan }: { currentPlan: string }) 
     <div className="grid md:grid-cols-3 gap-6 max-w-4xl">
       {Object.entries(PLANS).map(([key, plan]) => {
         const isCurrent = key === currentPlan
+        const isUpgrade =
+          !isCurrent &&
+          hasPurchasedPlan &&
+          PLAN_ORDER.indexOf(key) > PLAN_ORDER.indexOf(currentPlan)
         return (
           <div
             key={key}
@@ -58,7 +70,13 @@ export default function BillingClient({ currentPlan }: { currentPlan: string }) 
                   : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
               }`}
             >
-              {loading === key ? '処理中...' : isCurrent ? '現在のプラン' : '14日間無料で試す'}
+              {loading === key
+              ? '処理中...'
+              : isCurrent
+              ? '現在のプラン'
+              : isUpgrade
+              ? 'アップグレード'
+              : '14日間無料で試す'}
             </button>
           </div>
         )

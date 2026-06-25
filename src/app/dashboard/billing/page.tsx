@@ -10,7 +10,7 @@ export default async function BillingPage() {
 
   const { data: clinic } = await supabaseAdmin
     .from('clinics')
-    .select('plan')
+    .select('plan, stripe_subscription_id')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -31,7 +31,10 @@ export default async function BillingPage() {
         </p>
       </div>
 
-      <BillingClient currentPlan={clinic?.plan ?? 'lite'} />
+      <BillingClient
+        currentPlan={clinic?.plan ?? 'lite'}
+        hasPurchasedPlan={!!clinic?.stripe_subscription_id}
+      />
     </div>
   )
 }
