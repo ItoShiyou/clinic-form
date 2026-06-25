@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     if (!clinic) return NextResponse.json({ error: 'Clinic not found' }, { status: 404 })
 
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=1`
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`
 
     // 既存サブスクリプションがある場合はアップグレード処理
     if (clinic.stripe_subscription_id) {
