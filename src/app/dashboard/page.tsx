@@ -43,6 +43,24 @@ export default async function DashboardPage() {
         <UpgradeBanner />
       </Suspense>
 
+      {/* プラン未加入バナー */}
+      {!clinic?.stripe_subscription_id && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-blue-900">📅 14日間無料トライアルを開始しましょう</p>
+            <p className="text-xs text-blue-700 mt-1">
+              プランを選択してトライアルを開始すると、すべての機能が14日間無料でご利用いただけます。
+            </p>
+          </div>
+          <Link
+            href="/onboarding/plan"
+            className="shrink-0 bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            プランを選択する
+          </Link>
+        </div>
+      )}
+
       {/* 統計カード */}
       <div className="grid grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl border border-gray-100 p-6">

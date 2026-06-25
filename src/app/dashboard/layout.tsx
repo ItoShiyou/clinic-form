@@ -13,11 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('clerk_user_id', userId)
     .single()
 
-  // クリニック未登録 → オンボーディングへ
   if (!clinic) redirect('/onboarding')
-
-  // プラン未選択（Stripe未接続）→ プラン選択へ
-  if (!clinic.stripe_subscription_id) redirect('/onboarding/plan')
 
   const plan = clinic.plan ?? 'lite'
 
