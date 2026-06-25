@@ -42,6 +42,7 @@ export default async function ResponsesPage() {
           ...r,
           formTitle: (r.forms as { title: string } | null)?.title ?? '',
           fields: ((r.forms as { fields: FormField[] } | null)?.fields ?? []),
+          status: (r.status ?? 'unchecked') as 'unchecked' | 'checked' | 'in_progress' | 'done',
         }))}
         forms={forms ?? []}
       />
