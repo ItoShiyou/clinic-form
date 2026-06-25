@@ -22,6 +22,23 @@ export async function POST(req: Request) {
   }
 
   switch (event.type) {
+    // Checkout完了時にプランとサブスクリプションIDを即時反映
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session
+      if (session.mode !== 'subscription') break
+      const plan = session.metadata?.plan
+      const clinicId = session.metadata?.clinic_id
+      if (!plan || !clinicId) break
+      const subscriptionId = typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription?.id
+      if (!subscriptionId) break
+      await supabaseAdmin
+        .from('clinics')
+        .update({ plan, stripe_subscription_id: subscriptionId })
+        .eq('id', clinicId)
+      break
+    }
     case 'customer.subscription.created':
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription

@@ -72,6 +72,7 @@ export async function POST(req: Request) {
       success_url: successUrl,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
       subscription_data: { trial_period_days: 14 },
+      metadata: { plan, clinic_id: clinic.id },
     })
 
     return NextResponse.json({ url: session.url })
