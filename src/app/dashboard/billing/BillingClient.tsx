@@ -2,15 +2,18 @@
 
 import { useState } from 'react'
 import { PLANS } from '@/lib/plans'
+import type { PlanKey } from '@/lib/stripe'
 
 const PLAN_ORDER: string[] = ['lite', 'standard', 'clinic']
 
 export default function BillingClient({
   currentPlan,
   hasPurchasedPlan,
+  trialedPlans,
 }: {
   currentPlan: string
   hasPurchasedPlan: boolean
+  trialedPlans: PlanKey[]
 }) {
   const [loading, setLoading] = useState<string | null>(null)
 
@@ -39,6 +42,21 @@ export default function BillingClient({
           !isCurrent &&
           hasPurchasedPlan &&
           PLAN_ORDER.indexOf(key) > PLAN_ORDER.indexOf(currentPlan)
+        const hasTrialed = trialedPlans.includes(key as PlanKey)
+
+        let buttonLabel: string
+        if (loading === key) {
+          buttonLabel = '処理中...'
+        } else if (isCurrent) {
+          buttonLabel = '現在のプラン'
+        } else if (isUpgrade) {
+          buttonLabel = 'アップグレード'
+        } else if (hasTrialed) {
+          buttonLabel = 'このプランに変更'
+        } else {
+          buttonLabel = '14日間無料で試す'
+        }
+
         return (
           <div
             key={key}
@@ -46,9 +64,14 @@ export default function BillingClient({
           >
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-bold text-gray-900 text-lg">{plan.name}</h3>
-              {isCurrent && (
-                <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">利用中</span>
-              )}
+              <div className="flex gap-1">
+                {isCurrent && (
+                  <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">利用中</span>
+                )}
+                {!isCurrent && hasTrialed && (
+                  <span className="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">体験済み</span>
+                )}
+              </div>
             </div>
             <div className="mb-4">
               <span className="text-3xl font-bold text-gray-900">¥{plan.price.toLocaleString()}</span>
@@ -61,6 +84,9 @@ export default function BillingClient({
               <li>✓ メール通知</li>
               <li>✓ QRコード生成</li>
             </ul>
+            {!isCurrent && hasTrialed && (
+              <p className="text-xs text-gray-400 mb-2">※ 無料トライアルは終了しています</p>
+            )}
             <button
               onClick={() => handleUpgrade(key)}
               disabled={loading !== null || isCurrent}
@@ -70,13 +96,7 @@ export default function BillingClient({
                   : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
               }`}
             >
-              {loading === key
-              ? '処理中...'
-              : isCurrent
-              ? '現在のプラン'
-              : isUpgrade
-              ? 'アップグレード'
-              : '14日間無料で試す'}
+              {buttonLabel}
             </button>
           </div>
         )

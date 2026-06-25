@@ -64,6 +64,18 @@ export async function POST(req: Request) {
         .eq('id', clinic.id)
     }
 
+    // 過去にこのプランのトライアルを使ったことがあるか確認
+    const pastSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      limit: 100,
+    })
+    const hasTrialedThisPlan = pastSubs.data.some(
+      (sub) =>
+        sub.trial_start != null &&
+        sub.items.data.some((item) => item.price.id === planConfig.priceId)
+    )
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -71,7 +83,7 @@ export async function POST(req: Request) {
       line_items: [{ price: planConfig.priceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
-      subscription_data: { trial_period_days: 14 },
+      ...(hasTrialedThisPlan ? {} : { subscription_data: { trial_period_days: 14 } }),
       metadata: { plan, clinic_id: clinic.id },
     })
 
